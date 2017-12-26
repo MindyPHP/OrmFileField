@@ -1,7 +1,7 @@
 # Orm File Field Component
 
 [![Build Status](https://travis-ci.org/MindyPHP/OrmFileField.svg?branch=master)](https://travis-ci.org/MindyPHP/OrmFileField)
-[![Coverage Status](https://img.shields.io/coveralls/MindyPHP/OrmFileField.svg)](https://coveralls.io/r/MindyPHP/OrmFileField)
+[![codecov](https://codecov.io/gh/MindyPHP/OrmFileField/branch/master/graph/badge.svg)](https://codecov.io/gh/MindyPHP/OrmFileField)
 [![Latest Stable Version](https://poser.pugx.org/mindy/orm-file-field/v/stable.svg)](https://packagist.org/packages/mindy/orm-file-field)
 [![Total Downloads](https://poser.pugx.org/mindy/orm-file-field/downloads.svg)](https://packagist.org/packages/mindy/orm-file-field)
 
