@@ -15,8 +15,9 @@ use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemInterface;
 use Mindy\Orm\FileNameHasher\DefaultHasher;
 use Mindy\Orm\FileNameHasher\MD5NameHasher;
+use PHPUnit\Framework\TestCase;
 
-class NameHasherTest extends \PHPUnit_Framework_TestCase
+class NameHasherTest extends TestCase
 {
     /**
      * @var FilesystemInterface

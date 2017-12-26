@@ -222,7 +222,7 @@ class FileField extends CharField
             '%H' => date('H'),
             '%i' => date('i'),
             '%s' => date('s'),
-            '%O' => $model->classNameShort(),
+            '%O' => $model->getShortName(),
             '%M' => $model->getBundleName(),
         ]);
     }

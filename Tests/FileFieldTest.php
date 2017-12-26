@@ -18,9 +18,10 @@ use Mindy\Orm\FileNameHasher\DefaultHasher;
 use Mindy\Orm\Files\LocalFile;
 use Mindy\Orm\Files\RemoteFile;
 use Mindy\Orm\Files\ResourceFile;
+use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
-class FileFieldTest extends \PHPUnit_Framework_TestCase
+class FileFieldTest extends TestCase
 {
     /**
      * @var FilesystemInterface
