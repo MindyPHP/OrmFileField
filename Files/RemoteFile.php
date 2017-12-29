@@ -19,17 +19,32 @@ use Exception;
  */
 class RemoteFile extends ResourceFile
 {
-    public function __construct($url, $name = null, $tempDir = null)
+    /**
+     * RemoteFile constructor.
+     *
+     * @param string $url
+     * @param null   $name
+     * @param null   $tempDir
+     *
+     * @throws Exception
+     */
+    public function __construct(string $url, $name = null, $tempDir = null)
     {
-        if (!$this->urlExists($url)) {
+        if (false === $this->urlExists($url)) {
             throw new Exception("File {$url} not found");
         }
 
         $name = $name ?: basename(strtok($url, '?'));
-        parent::__construct(file_get_contents($url), $name);
+        $content = file_get_contents($url);
+        parent::__construct($content, $name);
     }
 
-    public function urlExists($url)
+    /**
+     * @param $url
+     *
+     * @return bool
+     */
+    public function urlExists($url): bool
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_HEADER, true);

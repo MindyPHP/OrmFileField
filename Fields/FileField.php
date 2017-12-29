@@ -96,17 +96,15 @@ class FileField extends CharField
      */
     public function getValidationConstraints()
     {
-        $constraints = [];
+        $constraints = [
+            new Assert\File([
+                'maxSize' => $this->maxSize,
+                'mimeTypes' => $this->mimeTypes,
+            ])
+        ];
 
-        $currentValue = $this->getModel()->getAttribute($this->getAttributeName());
-        if ($this->isRequired() && empty($currentValue)) {
-            $constraints = [
-                new Assert\NotBlank(),
-                new Assert\File([
-                    'maxSize' => $this->maxSize,
-                    'mimeTypes' => $this->mimeTypes,
-                ]),
-            ];
+        if ($this->isRequired()) {
+            $constraints[] = new Assert\NotBlank();
         }
 
         return $constraints;

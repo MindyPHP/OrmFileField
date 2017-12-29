@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of Mindy Framework.
  * (c) 2017 Maxim Falaleev
@@ -11,7 +13,6 @@
 namespace Mindy\Orm;
 
 use League\Flysystem\FilesystemInterface;
-use Mindy\Application\App;
 
 /**
  * Class OrmFile.
@@ -34,13 +35,8 @@ class OrmFile
     /**
      * @return FilesystemInterface|null
      */
-    public static function getFilesystem()
+    public static function getFilesystem(): FilesystemInterface
     {
-        if (null === self::$filesystem) {
-            // TODO https://github.com/MindyPHP/Mindy/issues/7
-            self::$filesystem = App::getInstance()->getComponent('oneup_flysystem.default_filesystem');
-        }
-
         return self::$filesystem;
     }
 }

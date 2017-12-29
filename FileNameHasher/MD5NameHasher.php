@@ -17,7 +17,7 @@ class MD5NameHasher extends DefaultHasher
     /**
      * {@inheritdoc}
      */
-    public function hash($fileName)
+    public function hash($fileName): string
     {
         return md5($fileName);
     }

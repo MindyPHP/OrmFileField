@@ -15,5 +15,3 @@ Resources
   * [Report issues](https://github.com/MindyPHP/mindy/issues) and
     [send Pull Requests](https://github.com/MindyPHP/mindy/pulls)
     in the [main Mindy repository](https://github.com/MindyPHP/mindy)
-
-![yandex](https://mc.yandex.ru/watch/43423684 "yandex")

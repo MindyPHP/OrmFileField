@@ -19,7 +19,7 @@ class DefaultHasher implements FileNameHasherInterface
     /**
      * {@inheritdoc}
      */
-    public function hash($fileName)
+    public function hash($fileName): string
     {
         return $fileName;
     }
@@ -27,9 +27,9 @@ class DefaultHasher implements FileNameHasherInterface
     /**
      * {@inheritdoc}
      */
-    public function resolveUploadPath(FilesystemInterface $filesystem, $uploadTo, $name)
+    public function resolveUploadPath(FilesystemInterface $filesystem, $uploadTo, $name): string
     {
-        $uploadTo = ltrim($uploadTo, '/');
+        $uploadTo = trim($uploadTo, '/');
 
         if (empty($name)) {
             throw new \RuntimeException('Empty file name received');
@@ -40,11 +40,11 @@ class DefaultHasher implements FileNameHasherInterface
 
         $i = 0;
         $resolvedName = sprintf('%s.%s', $hash, $ext);
-        while ($filesystem->has($uploadTo.'/'.$resolvedName)) {
+        while ($filesystem->has(sprintf("%s/%s", $uploadTo, $resolvedName))) {
             ++$i;
             $resolvedName = sprintf('%s_%d.%s', $hash, $i, $ext);
         }
 
-        return $uploadTo.'/'.$resolvedName;
+        return sprintf("%s/%s", $uploadTo, $resolvedName);
     }
 }

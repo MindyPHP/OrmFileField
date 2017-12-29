@@ -21,7 +21,7 @@ interface FileNameHasherInterface
      *
      * @return string
      */
-    public function hash($name);
+    public function hash($name): string;
 
     /**
      * @param FilesystemInterface $filesystem
@@ -30,5 +30,5 @@ interface FileNameHasherInterface
      *
      * @return string
      */
-    public function resolveUploadPath(FilesystemInterface $filesystem, $uploadTo, $name);
+    public function resolveUploadPath(FilesystemInterface $filesystem, $uploadTo, $name): string;
 }

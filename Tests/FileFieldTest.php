@@ -51,7 +51,7 @@ class FileFieldTest extends TestCase
         $this->field = $field;
     }
 
-    protected function tearDown()
+    public function tearDown()
     {
         foreach ($this->filesystem->listContents('/') as $file) {
             if ($file['type'] == 'dir') {
@@ -63,6 +63,10 @@ class FileFieldTest extends TestCase
 
         $this->filesystem = null;
         $this->field = null;
+
+        if (is_file(__DIR__.'/test.txt')) {
+            unlink(__DIR__.'/test.txt');
+        }
     }
 
     public function testUploadedFile()

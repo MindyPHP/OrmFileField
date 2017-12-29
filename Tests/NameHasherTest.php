@@ -17,64 +17,75 @@ use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemInterface;
 use Mindy\Orm\FileNameHasher\DefaultHasher;
 use Mindy\Orm\FileNameHasher\MD5NameHasher;
+use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class NameHasherTest extends TestCase
 {
     /**
-     * @var FilesystemInterface
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Empty file name received
      */
-    protected $filesystem;
-
-    public function setUp()
+    public function testResolveUploadPath()
     {
-        $this->filesystem = new Filesystem(new Local(__DIR__.'/temp'));
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $file = new DefaultHasher();
+        $file->resolveUploadPath($fs, __DIR__, null);
     }
 
-    protected function tearDown()
+    public function testDefaultNameHasher()
     {
-        foreach ($this->filesystem->listContents('/') as $file) {
-            if ($file['type'] == 'dir') {
-                $this->filesystem->deleteDir($file['path']);
-            } else {
-                $this->filesystem->delete($file['path']);
-            }
-        }
-    }
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
 
-    public function testDefaultNameHasherAvailable()
-    {
-        $path = sys_get_temp_dir();
-        $expectedName = sprintf('%s/NameHasherTest.php', ltrim($path, '/'));
-        $resolvedName = (new DefaultHasher())->resolveUploadPath($this->filesystem, $path, basename(__FILE__));
-        $this->assertSame($expectedName, $resolvedName);
-        $this->assertFalse($this->filesystem->has($resolvedName));
-    }
-
-    public function testDefaultNameHasherTaken()
-    {
-        $resolvedName = (new DefaultHasher())->resolveUploadPath($this->filesystem, '/', basename(__FILE__));
+        $hasher = new DefaultHasher();
         $this->assertSame(
-            '/NameHasherTest.php',
-            $resolvedName
+            ltrim(__DIR__.'/test.txt', '/'),
+            $hasher->resolveUploadPath($fs, __DIR__, 'test.txt')
         );
 
-        $this->filesystem->write('/NameHasherTest.php', '123');
-        $this->filesystem->has('/NameHasherTest.php');
+        $fs
+            ->expects($this->any())
+            ->method('has')
+            ->will($this->returnCallback(function ($value) {
+                return ltrim(__DIR__.'/test.txt', '/') === $value;
+            }));
 
-        $resolvedName = (new DefaultHasher())->resolveUploadPath($this->filesystem, '/', basename(__FILE__));
-        $this->assertSame('/NameHasherTest_1.php', $resolvedName);
-
-        $this->filesystem->write($resolvedName, '123');
-        $this->assertTrue($this->filesystem->has($resolvedName));
+        $this->assertSame(
+            ltrim(__DIR__.'/test_1.txt', '/'),
+            $hasher->resolveUploadPath($fs, __DIR__, 'test.txt')
+        );
     }
 
     public function testMD5NameHasher()
     {
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $hasher = new MD5NameHasher();
         $this->assertSame(
-            '/6f997ff817ae3852abfaa147e5d63aa7.php',
-            $hasher->resolveUploadPath($this->filesystem, '/', md5(basename(__FILE__)).'.php')
+            ltrim(__DIR__.'/098f6bcd4621d373cade4e832627b4f6.txt', '/'),
+            $hasher->resolveUploadPath($fs, __DIR__, 'test.txt')
+        );
+
+        $fs
+            ->expects($this->any())
+            ->method('has')
+            ->will($this->returnCallback(function ($value) {
+                return ltrim(__DIR__.'/098f6bcd4621d373cade4e832627b4f6.txt', '/') === $value;
+            }));
+
+        $this->assertSame(
+            ltrim(__DIR__.'/098f6bcd4621d373cade4e832627b4f6_1.txt', '/'),
+            $hasher->resolveUploadPath($fs, __DIR__, 'test.txt')
         );
     }
 }
