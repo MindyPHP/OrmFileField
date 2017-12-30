@@ -38,7 +38,7 @@ class NameHasherTest extends TestCase
             ->getMock();
 
         $file = new DefaultHasher();
-        $file->resolveUploadPath($fs, __DIR__, null);
+        $file->resolveUploadPath($fs, __DIR__, '');
     }
 
     public function testTrait()

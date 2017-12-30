@@ -10,18 +10,19 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Mindy\Orm\FileNameHasher;
+namespace Mindy\Orm;
 
-/**
- * Class MD5NameHasher
- */
-class MD5NameHasher extends DefaultHasher
+class FileUtil
 {
     /**
-     * {@inheritdoc}
+     * Combine multiple slashes into a single slash
+     *
+     * @param $path
+     *
+     * @return string
      */
-    public function hash($fileName): string
+    public static function normalizePath($path): string
     {
-        return md5($fileName);
+        return preg_replace('/\/+/', '/', $path);
     }
 }

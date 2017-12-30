@@ -14,6 +14,9 @@ namespace Mindy\Orm\FileNameHasher;
 
 use League\Flysystem\FilesystemInterface;
 
+/**
+ * Class DefaultHasher
+ */
 class DefaultHasher implements FileNameHasherInterface
 {
     /**
@@ -27,7 +30,7 @@ class DefaultHasher implements FileNameHasherInterface
     /**
      * {@inheritdoc}
      */
-    public function resolveUploadPath(FilesystemInterface $filesystem, $uploadTo, $name): string
+    public function resolveUploadPath(FilesystemInterface $filesystem, string $uploadTo, string $name): string
     {
         $uploadTo = trim($uploadTo, '/');
 
@@ -40,11 +43,11 @@ class DefaultHasher implements FileNameHasherInterface
 
         $i = 0;
         $resolvedName = sprintf('%s.%s', $hash, $ext);
-        while ($filesystem->has(sprintf("%s/%s", $uploadTo, $resolvedName))) {
+        while ($filesystem->has(sprintf('%s/%s', $uploadTo, $resolvedName))) {
             ++$i;
             $resolvedName = sprintf('%s_%d.%s', $hash, $i, $ext);
         }
 
-        return sprintf("%s/%s", $uploadTo, $resolvedName);
+        return sprintf('%s/%s', $uploadTo, $resolvedName);
     }
 }

@@ -16,9 +16,10 @@ use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Exception;
 use League\Flysystem\FilesystemInterface;
 use Mindy\Orm\FileNameHasher\FileNameHasherAwareTrait;
+use Mindy\Orm\Files\Base64File;
 use Mindy\Orm\Files\File;
 use Mindy\Orm\Files\LocalFile;
-use Mindy\Orm\Files\ResourceFile;
+use Mindy\Orm\FileUtil;
 use Mindy\Orm\ModelInterface;
 use Mindy\Orm\OrmFile;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -106,9 +107,8 @@ class FileField extends CharField
         $fs = $this->getFilesystem();
         if ($fs->has($this->value)) {
             return $fs->get($this->value)->getSize();
-        } else {
-            throw new \RuntimeException('File not found');
         }
+        throw new \RuntimeException('File not found');
     }
 
     /**
@@ -117,50 +117,36 @@ class FileField extends CharField
      */
     public function afterDelete(ModelInterface $model, $value)
     {
-        if ($model->hasAttribute($this->getAttributeName())) {
-            $fs = $this->getFilesystem();
-            if ($fs->has($value)) {
-                $fs->delete($value);
-            }
+        $fs = $this->getFilesystem();
+        if ($fs->has($value)) {
+            $fs->delete($value);
         }
     }
 
     public function setValue($value)
     {
-        if (
-            is_array($value) &&
-            isset($value['error']) &&
-            isset($value['tmp_name']) &&
-            isset($value['size']) &&
-            isset($value['name']) &&
-            isset($value['type'])
-        ) {
-            if ($value['error'] === UPLOAD_ERR_NO_FILE) {
-                $value = null;
-            } else {
-                $value = new UploadedFile(
-                    $value['tmp_name'],
-                    $value['name'],
-                    $value['type'],
-                    (int) $value['size'],
-                    (int) $value['error']
-                );
-            }
-        } elseif (is_string($value)) {
-            if (strpos($value, 'data:') !== false) {
-                list($type, $value) = explode(';', $value);
-                list(, $value) = explode(',', $value);
-                $value = base64_decode($value);
-                $value = new ResourceFile($value, null, null, $type);
-            } elseif (realpath($value)) {
-                $value = new LocalFile(realpath($value));
-            }
-        }
-
-        if ($value === null) {
-            $this->value = null;
-        } elseif ($value instanceof File || $value instanceof UploadedFile) {
+        if ($value instanceof File || $value instanceof UploadedFile) {
             $this->value = $value;
+        } elseif (is_array($value)) {
+            $this->value = new UploadedFile(
+                $value['tmp_name'],
+                $value['name'],
+                $value['type'],
+                (int) $value['size'],
+                (int) $value['error']
+            );
+        } elseif (is_string($value)) {
+            if (false !== strpos($value, 'data:')) {
+                $this->value = new Base64File($value);
+            } elseif (realpath($value)) {
+                $this->value = new LocalFile(realpath($value));
+            } else {
+                throw new \RuntimeException('File not found or not exists');
+            }
+        } elseif ($value === null) {
+            $this->value = null;
+        } else {
+            throw new \RuntimeException('Unknown file type');
         }
     }
 
@@ -172,6 +158,7 @@ class FileField extends CharField
         if (is_callable($this->uploadTo)) {
             return $this->uploadTo->__invoke();
         }
+
         $model = $this->getModel();
 
         return strtr($this->uploadTo, [
@@ -192,56 +179,55 @@ class FileField extends CharField
             $value = $this->saveUploadedFile($value);
         } elseif ($value instanceof File) {
             $value = $this->saveFile($value);
-        } else if (is_string($value)) {
-            $value = $this->normalizeValue($value);
+        } elseif (is_string($value)) {
+            $value = FileUtil::normalizePath($value);
         }
 
         return parent::convertToDatabaseValue($value, $platform);
     }
 
     /**
-     * Combine multiple slashes into a single slash
+     * @param UploadedFile $file
      *
-     * @param $value
+     * @throws Exception
      *
      * @return string
      */
-    public function normalizeValue(string $value): string
-    {
-        return preg_replace('/\/+/', '/', $value);
-    }
-
-    public function saveUploadedFile(UploadedFile $file)
+    public function saveUploadedFile(UploadedFile $file): string
     {
         if (false === $file->isValid()) {
-            return false;
+            throw new Exception('Invalid uploaded file');
         }
-
-        $contents = file_get_contents($file->getRealPath());
 
         $path = $this->getFileNameHasher()->resolveUploadPath(
             $this->getFilesystem(),
             $this->getUploadTo(),
             $file->getClientOriginalName()
         );
-        if (!$this->getFilesystem()->write($path, $contents)) {
+
+        if (false === $this->getFilesystem()->write($path, file_get_contents($file->getRealPath()))) {
             throw new Exception('Failed to save file');
         }
 
         return $path;
     }
 
-    public function saveFile(File $file)
+    /**
+     * @param File $file
+     *
+     * @throws Exception
+     *
+     * @return string
+     */
+    public function saveFile(File $file): string
     {
-        $contents = file_get_contents($file->getRealPath());
-
         $path = $this->getFileNameHasher()->resolveUploadPath(
             $this->getFilesystem(),
             $this->getUploadTo(),
             $file->getFilename()
         );
 
-        if (!$this->getFilesystem()->write($path, $contents)) {
+        if (false === $this->getFilesystem()->write($path, file_get_contents($file->getRealPath()))) {
             throw new Exception('Failed to save file');
         }
 

@@ -25,10 +25,10 @@ interface FileNameHasherInterface
 
     /**
      * @param FilesystemInterface $filesystem
-     * @param $uploadTo
-     * @param $name
+     * @param string $uploadTo
+     * @param string $name
      *
      * @return string
      */
-    public function resolveUploadPath(FilesystemInterface $filesystem, $uploadTo, $name): string;
+    public function resolveUploadPath(FilesystemInterface $filesystem, string $uploadTo, string $name): string;
 }

@@ -19,6 +19,7 @@ use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemInterface;
 use Mindy\Orm\Fields\FileField;
 use Mindy\Orm\FileNameHasher\DefaultHasher;
+use Mindy\Orm\FileNameHasher\FileNameHasherInterface;
 use Mindy\Orm\Files\LocalFile;
 use Mindy\Orm\Files\RemoteFile;
 use Mindy\Orm\Files\ResourceFile;
@@ -293,5 +294,94 @@ class FileFieldTest extends TestCase
             },
         ]);
         $this->assertSame('/test/', $file->getUploadTo());
+    }
+
+    /**
+     * @expectedException \Exception
+     * @expectedExceptionMessage Invalid uploaded file
+     */
+    public function testUploadedFileInvalid()
+    {
+        $file = $this
+            ->getMockBuilder(UploadedFile::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $file->method('isValid')->will($this->returnValue(false));
+
+        $field = new FileField();
+        $field->saveUploadedFile($file);
+    }
+
+    /**
+     * @expectedException \Exception
+     * @expectedExceptionMessage Failed to save file
+     */
+    public function testUploadedFileBrokenWhileWrite()
+    {
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $fs->method('write')->willReturn(false);
+
+        $hasher = $this
+            ->getMockBuilder(FileNameHasherInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $hasher->method('resolveUploadPath')->willReturn('/test/file.txt');
+
+        $file = $this
+            ->getMockBuilder(UploadedFile::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $file->method('isValid')->willReturn(true);
+        $file->method('getClientOriginalName')->willReturn('file.txt');
+        $file->method('getRealPath')->willReturn(__FILE__);
+
+        $field = new FileField([
+            'uploadTo' => function () {
+                return '/test/';
+            }
+        ]);
+        $field->setFileNameHasher($hasher);
+        $field->setFilesystem($fs);
+        $field->saveUploadedFile($file);
+    }
+
+    /**
+     * @expectedException \Exception
+     * @expectedExceptionMessage Failed to save file
+     */
+    public function testFileBrokenWhileWrite()
+    {
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $fs->method('write')->willReturn(false);
+
+        $hasher = $this
+            ->getMockBuilder(FileNameHasherInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $hasher->method('resolveUploadPath')->willReturn('/test/file.txt');
+
+        $file = $this
+            ->getMockBuilder(LocalFile::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $file->method('getFilename')->willReturn('file.txt');
+        $file->method('getRealPath')->willReturn(__FILE__);
+
+        $field = new FileField([
+            'uploadTo' => function () {
+                return '/test/';
+            }
+        ]);
+        $field->setFileNameHasher($hasher);
+        $field->setFilesystem($fs);
+        $field->saveFile($file);
     }
 }
