@@ -15,8 +15,7 @@ namespace Mindy\Orm\Fields;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Exception;
 use League\Flysystem\FilesystemInterface;
-use Mindy\Orm\FileNameHasher\FileNameHasherInterface;
-use Mindy\Orm\FileNameHasher\MD5NameHasher;
+use Mindy\Orm\FileNameHasher\FileNameHasherAwareTrait;
 use Mindy\Orm\Files\File;
 use Mindy\Orm\Files\LocalFile;
 use Mindy\Orm\Files\ResourceFile;
@@ -30,6 +29,8 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 class FileField extends CharField
 {
+    use FileNameHasherAwareTrait;
+
     /**
      * Upload to template, you can use these variables:
      * %Y - Current year (4 digits)
@@ -57,11 +58,6 @@ class FileField extends CharField
     public $maxSize = '5M';
 
     /**
-     * @var callable convert file name
-     */
-    public $nameHasher;
-
-    /**
      * @var string
      */
     protected $basePath;
@@ -72,26 +68,6 @@ class FileField extends CharField
     protected $filesystem;
 
     /**
-     * @param FileNameHasherInterface $nameHasher
-     */
-    public function setNameHasher(FileNameHasherInterface $nameHasher)
-    {
-        $this->nameHasher = $nameHasher;
-    }
-
-    /**
-     * @return FileNameHasherInterface
-     */
-    public function getNameHasher()
-    {
-        if ($this->nameHasher === null) {
-            $this->nameHasher = new MD5NameHasher();
-        }
-
-        return $this->nameHasher;
-    }
-
-    /**
      * @return array
      */
     public function getValidationConstraints()
@@ -100,7 +76,7 @@ class FileField extends CharField
             new Assert\File([
                 'maxSize' => $this->maxSize,
                 'mimeTypes' => $this->mimeTypes,
-            ])
+            ]),
         ];
 
         if ($this->isRequired()) {
@@ -108,14 +84,6 @@ class FileField extends CharField
         }
 
         return $constraints;
-    }
-
-    /**
-     * @return string
-     */
-    public function path()
-    {
-        return $this->value;
     }
 
     /**
@@ -129,19 +97,18 @@ class FileField extends CharField
     /**
      * @return int
      */
-    public function size()
+    public function size(): int
     {
         if (empty($this->value)) {
             return 0;
         }
-        if ($this->getFilesystem()->has($this->value)) {
-            /** @var \League\Flysystem\File $file */
-            $file = $this->getFilesystem()->get($this->value);
 
-            return $file->getSize();
+        $fs = $this->getFilesystem();
+        if ($fs->has($this->value)) {
+            return $fs->get($this->value)->getSize();
+        } else {
+            throw new \RuntimeException('File not found');
         }
-
-        return 0;
     }
 
     /**
@@ -198,14 +165,6 @@ class FileField extends CharField
     }
 
     /**
-     * @return array|null
-     */
-    public function toArray()
-    {
-        return empty($this->value) ? null : $this->getValue();
-    }
-
-    /**
      * @return string
      */
     public function getUploadTo()
@@ -233,27 +192,23 @@ class FileField extends CharField
             $value = $this->saveUploadedFile($value);
         } elseif ($value instanceof File) {
             $value = $this->saveFile($value);
-        }
-
-        if ($value === false) {
-            $value = null;
-        }
-
-        if (is_string($value)) {
+        } else if (is_string($value)) {
             $value = $this->normalizeValue($value);
         }
 
         return parent::convertToDatabaseValue($value, $platform);
     }
 
-    public function convertToPHPValueSQL($value, AbstractPlatform $platform)
+    /**
+     * Combine multiple slashes into a single slash
+     *
+     * @param $value
+     *
+     * @return string
+     */
+    public function normalizeValue(string $value): string
     {
-        return $value;
-    }
-
-    protected function normalizeValue($value)
-    {
-        return str_replace('//', '/', $value);
+        return preg_replace('/\/+/', '/', $value);
     }
 
     public function saveUploadedFile(UploadedFile $file)
@@ -264,7 +219,7 @@ class FileField extends CharField
 
         $contents = file_get_contents($file->getRealPath());
 
-        $path = $this->getNameHasher()->resolveUploadPath(
+        $path = $this->getFileNameHasher()->resolveUploadPath(
             $this->getFilesystem(),
             $this->getUploadTo(),
             $file->getClientOriginalName()
@@ -280,11 +235,12 @@ class FileField extends CharField
     {
         $contents = file_get_contents($file->getRealPath());
 
-        $path = $this->getNameHasher()->resolveUploadPath(
+        $path = $this->getFileNameHasher()->resolveUploadPath(
             $this->getFilesystem(),
             $this->getUploadTo(),
             $file->getFilename()
         );
+
         if (!$this->getFilesystem()->write($path, $contents)) {
             throw new Exception('Failed to save file');
         }
@@ -292,12 +248,18 @@ class FileField extends CharField
         return $path;
     }
 
+    /**
+     * @param FilesystemInterface $filesystem
+     */
     public function setFilesystem(FilesystemInterface $filesystem)
     {
         $this->filesystem = $filesystem;
     }
 
-    public function getFilesystem()
+    /**
+     * @return FilesystemInterface
+     */
+    public function getFilesystem(): FilesystemInterface
     {
         if (null === $this->filesystem) {
             return OrmFile::getFilesystem();

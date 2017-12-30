@@ -11,6 +11,7 @@
 namespace Mindy\Orm\Tests;
 
 use League\Flysystem\FilesystemInterface;
+use Mindy\Orm\Fields\FileField;
 use Mindy\Orm\OrmFile;
 use PHPUnit\Framework\TestCase;
 
@@ -25,5 +26,8 @@ class OrmFileTest extends TestCase
 
         OrmFile::setFilesystem($fs);
         $this->assertInstanceOf(FilesystemInterface::class, OrmFile::getFilesystem());
+
+        $file = new FileField();
+        $this->assertInstanceOf(FilesystemInterface::class, $file->getFilesystem());
     }
 }

@@ -12,7 +12,9 @@ declare(strict_types=1);
 
 namespace Mindy\Orm\Tests;
 
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use League\Flysystem\Adapter\Local;
+use League\Flysystem\File;
 use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemInterface;
 use Mindy\Orm\Fields\FileField;
@@ -20,6 +22,7 @@ use Mindy\Orm\FileNameHasher\DefaultHasher;
 use Mindy\Orm\Files\LocalFile;
 use Mindy\Orm\Files\RemoteFile;
 use Mindy\Orm\Files\ResourceFile;
+use Mindy\Orm\Tests\Models\User;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -37,15 +40,14 @@ class FileFieldTest extends TestCase
 
     public function setUp()
     {
-        $this->filesystem = new Filesystem(new Local(__DIR__.'/temp'));
-        file_put_contents(__DIR__.'/test.txt', '123');
+        $this->filesystem = new Filesystem(new Local(__DIR__ . '/temp'));
+        file_put_contents(__DIR__ . '/test.txt', '123');
 
         $field = new FileField([
             'name' => 'file',
         ]);
         $field->setFilesystem($this->filesystem);
-        $field->setNameHasher(new DefaultHasher());
-        assert($field->getNameHasher() instanceof DefaultHasher);
+        assert($field->getFileNameHasher() instanceof DefaultHasher);
         $field->setModel(new FileModel());
 
         $this->field = $field;
@@ -64,8 +66,8 @@ class FileFieldTest extends TestCase
         $this->filesystem = null;
         $this->field = null;
 
-        if (is_file(__DIR__.'/test.txt')) {
-            unlink(__DIR__.'/test.txt');
+        if (is_file(__DIR__ . '/test.txt')) {
+            unlink(__DIR__ . '/test.txt');
         }
     }
 
@@ -73,10 +75,10 @@ class FileFieldTest extends TestCase
     {
         // $path, $originalName, $mimeType = null, $size = null, $error = null, $test = false
         $file = new UploadedFile(
-            __DIR__.'/test.txt',
+            __DIR__ . '/test.txt',
             'test.txt',
             'plain/text',
-            filesize(__DIR__.'/test.txt'),
+            filesize(__DIR__ . '/test.txt'),
             null,
             true
         );
@@ -84,18 +86,18 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertEquals('123', file_get_contents(__DIR__.'/temp/'.$path.'/test.txt'));
+        $this->assertEquals('123', file_get_contents(__DIR__ . '/temp/' . $path . '/test.txt'));
     }
 
     public function testLocalFile()
     {
         // $path, $originalName, $mimeType = null, $size = null, $error = null, $test = false
-        $file = new LocalFile(__DIR__.'/test.txt');
+        $file = new LocalFile(__DIR__ . '/test.txt');
         $this->field->saveFile($file);
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertEquals('123', file_get_contents(__DIR__.'/temp/'.$path.'/test.txt'));
+        $this->assertEquals('123', file_get_contents(__DIR__ . '/temp/' . $path . '/test.txt'));
     }
 
     public function testResourceFile()
@@ -106,7 +108,7 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertEquals('123', file_get_contents(__DIR__.'/temp/'.$path.'/test.txt'));
+        $this->assertEquals('123', file_get_contents(__DIR__ . '/temp/' . $path . '/test.txt'));
     }
 
     public function testRemoteFile()
@@ -120,7 +122,7 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertTrue(is_file(__DIR__.'/temp/'.$path.'/readme.md'));
+        $this->assertTrue(is_file(__DIR__ . '/temp/' . $path . '/readme.md'));
     }
 
     public function testFileFieldValidation()
@@ -128,7 +130,7 @@ class FileFieldTest extends TestCase
         $this->assertFalse($this->field->isValid());
         $this->assertEquals(['This value should not be blank.'], $this->field->getErrors());
 
-        $path = __DIR__.'/test.txt';
+        $path = __DIR__ . '/test.txt';
         file_put_contents($path, '123');
 
         // $path, $originalName, $mimeType = null, $size = null, $error = null, $test = false
@@ -169,7 +171,7 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertTrue(is_file(__DIR__.'/temp/'.$path.'/test.php'));
+        $this->assertTrue(is_file(__DIR__ . '/temp/' . $path . '/test.php'));
     }
 
     public function testResourceFieldNoHasher()
@@ -182,6 +184,114 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertTrue(is_file(__DIR__.'/temp/'.$path.'/test.php'));
+        $this->assertTrue(is_file(__DIR__ . '/temp/' . $path . '/test.php'));
+    }
+
+    public function testDelete()
+    {
+        $file = new FileField();
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $fs->method('delete')->will($this->returnValue(true));
+
+        $file->setFilesystem($fs);
+
+        $this->assertTrue($file->delete());
+    }
+
+    public function testConvertToDatabaseValue()
+    {
+        $file = new FileField([
+            'uploadTo' => 'test',
+        ]);
+        $file->setModel(new User());
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $fs->method('write')->will($this->returnValue(true));
+
+        $platform = $this
+            ->getMockBuilder(AbstractPlatform::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $file->setFilesystem($fs);
+
+        $value = new UploadedFile(__FILE__, basename(__FILE__), null, null, null, true);
+        $this->assertSame('test/FileFieldTest.php', $file->convertToDatabaseValue($value, $platform));
+
+        $value = new LocalFile(__FILE__);
+        $this->assertSame('test/FileFieldTest.php', $file->convertToDatabaseValue($value, $platform));
+    }
+
+    public function testFailToSaveFile()
+    {
+        $file = new FileField;
+
+        $platform = $this
+            ->getMockBuilder(AbstractPlatform::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
+        $this->assertSame(__FILE__, $file->convertToDatabaseValue(__FILE__, $platform));
+    }
+
+    public function testSize()
+    {
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $fs->method('has')->will($this->returnValue(true));
+
+        $file = $this
+            ->getMockBuilder(File::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $file->method('getSize')->will($this->returnValue(123));
+        $fs->method('get')->will($this->returnValue($file));
+
+        $field = new FileField([
+            'value' => __FILE__
+        ]);
+        $field->setFilesystem($fs);
+        $this->assertSame(123, $field->size());
+
+        $field = new FileField();
+        $this->assertSame(0, $field->size());
+
+        $fs->method('has')->will($this->returnValue(false));
+    }
+
+    /**
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage File not found
+     */
+    public function testSizeUnknownFile()
+    {
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $fs->method('has')->will($this->returnValue(false));
+
+        $field = new FileField([
+            'value' => __FILE__
+        ]);
+        $field->setFilesystem($fs);
+        $field->size();
+    }
+
+    public function testUploadTo()
+    {
+        $file = new FileField([
+            'uploadTo' => function () {
+                return '/test/';
+            },
+        ]);
+        $this->assertSame('/test/', $file->getUploadTo());
     }
 }

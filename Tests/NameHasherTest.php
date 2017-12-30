@@ -12,13 +12,17 @@ declare(strict_types=1);
 
 namespace Mindy\Orm\Tests;
 
-use League\Flysystem\Adapter\Local;
-use League\Flysystem\Filesystem;
 use League\Flysystem\FilesystemInterface;
 use Mindy\Orm\FileNameHasher\DefaultHasher;
+use Mindy\Orm\FileNameHasher\FileNameHasherAwareTrait;
+use Mindy\Orm\FileNameHasher\FileNameHasherInterface;
 use Mindy\Orm\FileNameHasher\MD5NameHasher;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+
+class TestHasherAware
+{
+    use FileNameHasherAwareTrait;
+}
 
 class NameHasherTest extends TestCase
 {
@@ -35,6 +39,17 @@ class NameHasherTest extends TestCase
 
         $file = new DefaultHasher();
         $file->resolveUploadPath($fs, __DIR__, null);
+    }
+
+    public function testTrait()
+    {
+        $t = new TestHasherAware();
+
+        $this->assertInstanceOf(FileNameHasherInterface::class, $t->getFileNameHasher());
+        $this->assertInstanceOf(DefaultHasher::class, $t->getFileNameHasher());
+
+        $t->setFileNameHasher(new MD5NameHasher());
+        $this->assertInstanceOf(MD5NameHasher::class, $t->getFileNameHasher());
     }
 
     public function testDefaultNameHasher()
