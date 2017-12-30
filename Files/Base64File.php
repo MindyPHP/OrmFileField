@@ -12,7 +12,6 @@ declare(strict_types=1);
 
 namespace Mindy\Orm\Files;
 
-use League\Flysystem\Util\MimeType;
 use Mimey\MimeTypes;
 
 /**
@@ -50,7 +49,7 @@ class Base64File extends File
         $bodyRaw = mb_substr($value, mb_strpos($value, ',', 0, 'UTF-8'), null, 'UTF-8');
         $body = base64_decode($bodyRaw);
 
-        $mimes = new MimeTypes;
+        $mimes = new MimeTypes();
         $name = sprintf(
             '%s.%s',
             pathinfo($name, PATHINFO_FILENAME),

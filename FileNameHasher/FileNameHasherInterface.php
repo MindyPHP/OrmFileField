@@ -25,8 +25,8 @@ interface FileNameHasherInterface
 
     /**
      * @param FilesystemInterface $filesystem
-     * @param string $uploadTo
-     * @param string $name
+     * @param string              $uploadTo
+     * @param string              $name
      *
      * @return string
      */

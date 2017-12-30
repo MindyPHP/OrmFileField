@@ -42,8 +42,8 @@ class FileFieldTest extends TestCase
 
     public function setUp()
     {
-        $this->filesystem = new Filesystem(new Local(__DIR__ . '/temp'));
-        file_put_contents(__DIR__ . '/test.txt', '123');
+        $this->filesystem = new Filesystem(new Local(__DIR__.'/temp'));
+        file_put_contents(__DIR__.'/test.txt', '123');
 
         $field = new FileField([
             'name' => 'file',
@@ -68,8 +68,8 @@ class FileFieldTest extends TestCase
         $this->filesystem = null;
         $this->field = null;
 
-        if (is_file(__DIR__ . '/test.txt')) {
-            unlink(__DIR__ . '/test.txt');
+        if (is_file(__DIR__.'/test.txt')) {
+            unlink(__DIR__.'/test.txt');
         }
     }
 
@@ -77,10 +77,10 @@ class FileFieldTest extends TestCase
     {
         // $path, $originalName, $mimeType = null, $size = null, $error = null, $test = false
         $file = new UploadedFile(
-            __DIR__ . '/test.txt',
+            __DIR__.'/test.txt',
             'test.txt',
             'plain/text',
-            filesize(__DIR__ . '/test.txt'),
+            filesize(__DIR__.'/test.txt'),
             null,
             true
         );
@@ -88,18 +88,18 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertEquals('123', file_get_contents(__DIR__ . '/temp/' . $path . '/test.txt'));
+        $this->assertEquals('123', file_get_contents(__DIR__.'/temp/'.$path.'/test.txt'));
     }
 
     public function testLocalFile()
     {
         // $path, $originalName, $mimeType = null, $size = null, $error = null, $test = false
-        $file = new LocalFile(__DIR__ . '/test.txt');
+        $file = new LocalFile(__DIR__.'/test.txt');
         $this->field->saveFile($file);
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertEquals('123', file_get_contents(__DIR__ . '/temp/' . $path . '/test.txt'));
+        $this->assertEquals('123', file_get_contents(__DIR__.'/temp/'.$path.'/test.txt'));
     }
 
     public function testResourceFile()
@@ -110,7 +110,7 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertEquals('123', file_get_contents(__DIR__ . '/temp/' . $path . '/test.txt'));
+        $this->assertEquals('123', file_get_contents(__DIR__.'/temp/'.$path.'/test.txt'));
     }
 
     public function testRemoteFile()
@@ -124,7 +124,7 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertTrue(is_file(__DIR__ . '/temp/' . $path . '/readme.md'));
+        $this->assertTrue(is_file(__DIR__.'/temp/'.$path.'/readme.md'));
     }
 
     public function testFileFieldValidation()
@@ -132,11 +132,11 @@ class FileFieldTest extends TestCase
         $this->assertFalse($this->field->isValid());
         $this->assertEquals(['This value should not be blank.'], $this->field->getErrors());
 
-        $path = __DIR__ . '/test.txt';
+        $path = __DIR__.'/test.txt';
         file_put_contents($path, '123');
 
         // $path, $originalName, $mimeType = null, $size = null, $error = null, $test = false
-        $uploadedFile = new UploadedFile(__FILE__, 10000000, UPLOAD_ERR_OK, basename(__FILE__), 'text/php');
+        $uploadedFile = new UploadedFile(__FILE__, basename(__FILE__), 'text/php', 10000000, UPLOAD_ERR_OK, false);
         $this->field->setValue($uploadedFile);
         $this->assertFalse($this->field->isValid());
         $this->assertEquals(['The file could not be uploaded.'], $this->field->getErrors());
@@ -173,7 +173,7 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertTrue(is_file(__DIR__ . '/temp/' . $path . '/test.php'));
+        $this->assertTrue(is_file(__DIR__.'/temp/'.$path.'/test.php'));
     }
 
     public function testResourceFieldNoHasher()
@@ -186,7 +186,7 @@ class FileFieldTest extends TestCase
 
         $path = $this->field->getUploadTo();
         $this->assertEquals(sprintf('foo/FileModel/%s', date('Y-m-d')), $path);
-        $this->assertTrue(is_file(__DIR__ . '/temp/' . $path . '/test.php'));
+        $this->assertTrue(is_file(__DIR__.'/temp/'.$path.'/test.php'));
     }
 
     public function testDelete()
@@ -231,7 +231,7 @@ class FileFieldTest extends TestCase
 
     public function testFailToSaveFile()
     {
-        $file = new FileField;
+        $file = new FileField();
 
         $platform = $this
             ->getMockBuilder(AbstractPlatform::class)
@@ -249,7 +249,7 @@ class FileFieldTest extends TestCase
             'name' => basename(__FILE__),
             'type' => '',
             'size' => 0,
-            'error' => UPLOAD_ERR_OK
+            'error' => UPLOAD_ERR_OK,
         ]);
         $this->assertInstanceOf(UploadedFile::class, $field->getValue());
 
@@ -287,7 +287,7 @@ class FileFieldTest extends TestCase
         $field = new FileField();
         $field->setFilesystem($fs);
 
-        $user = new User;
+        $user = new User();
         $field->afterDelete($user, __FILE__);
     }
 
@@ -307,7 +307,7 @@ class FileFieldTest extends TestCase
         $fs->method('get')->will($this->returnValue($file));
 
         $field = new FileField([
-            'value' => __FILE__
+            'value' => __FILE__,
         ]);
         $field->setFilesystem($fs);
         $this->assertSame(123, $field->size());
@@ -331,7 +331,7 @@ class FileFieldTest extends TestCase
         $fs->method('has')->will($this->returnValue(false));
 
         $field = new FileField([
-            'value' => __FILE__
+            'value' => __FILE__,
         ]);
         $field->setFilesystem($fs);
         $field->size();
@@ -393,7 +393,7 @@ class FileFieldTest extends TestCase
         $field = new FileField([
             'uploadTo' => function () {
                 return '/test/';
-            }
+            },
         ]);
         $field->setFileNameHasher($hasher);
         $field->setFilesystem($fs);
@@ -429,7 +429,7 @@ class FileFieldTest extends TestCase
         $field = new FileField([
             'uploadTo' => function () {
                 return '/test/';
-            }
+            },
         ]);
         $field->setFileNameHasher($hasher);
         $field->setFilesystem($fs);
