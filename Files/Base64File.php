@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Mindy\Orm\Files;
 
 use League\Flysystem\Util\MimeType;
+use Mimey\MimeTypes;
 
 /**
  * Class ResourceFile.
@@ -41,49 +42,25 @@ class Base64File extends File
      * @param string      $raw
      * @param string|null $name
      *
-     * @return bool
+     * @return string
      */
-    protected function saveFileFromBase64(string $tmpDir, string $raw, string $name): bool
+    protected function saveFileFromBase64(string $tmpDir, string $raw, string $name): string
     {
         list($mimeType, $value) = explode(';', $raw);
-        $bodyRaw = mb_substr(mb_strpos($value, ',', 0, 'UTF-8'), null, 'UTF-8');
+        $bodyRaw = mb_substr($value, mb_strpos($value, ',', 0, 'UTF-8'), null, 'UTF-8');
         $body = base64_decode($bodyRaw);
 
-        if (empty($mimeType)) {
-            $ext = $this->getExtensionFromMimeType($mimeType);
-        } else {
-            $ext = $this->getExtensionFromContent($body);
-        }
-
-        $name = sprintf('%s.%s', pathinfo($name, PATHINFO_FILENAME), $ext);
+        $mimes = new MimeTypes;
+        $name = sprintf(
+            '%s.%s',
+            pathinfo($name, PATHINFO_FILENAME),
+            $mimes->getExtension($mimeType)
+        );
 
         $path = dirname(tempnam($tmpDir, 'upload')).DIRECTORY_SEPARATOR.$name;
 
-        return (bool) file_put_contents($path, $body);
-    }
+        file_put_contents($path, $body);
 
-    /**
-     * @param string $mimeType
-     *
-     * @return string
-     */
-    protected function getExtensionFromMimeType(string $mimeType): string
-    {
-        $mimeTypes = array_flip(MimeType::getExtensionToMimeTypeMap());
-        if (array_key_exists($mimeType, $mimeTypes)) {
-            return $mimeTypes[$mimeType];
-        }
-
-        throw new \RuntimeException('Could not determine mime type from file body');
-    }
-
-    /**
-     * @param string $content
-     *
-     * @return string
-     */
-    protected function getExtensionFromContent(string $content): string
-    {
-        return $this->getExtensionFromMimeType(MimeType::detectByContent($content));
+        return $path;
     }
 }

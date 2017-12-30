@@ -20,6 +20,7 @@ use League\Flysystem\FilesystemInterface;
 use Mindy\Orm\Fields\FileField;
 use Mindy\Orm\FileNameHasher\DefaultHasher;
 use Mindy\Orm\FileNameHasher\FileNameHasherInterface;
+use Mindy\Orm\Files\Base64File;
 use Mindy\Orm\Files\LocalFile;
 use Mindy\Orm\Files\RemoteFile;
 use Mindy\Orm\Files\ResourceFile;
@@ -238,6 +239,56 @@ class FileFieldTest extends TestCase
             ->getMock();
 
         $this->assertSame(__FILE__, $file->convertToDatabaseValue(__FILE__, $platform));
+    }
+
+    public function testSetValue()
+    {
+        $field = new FileField();
+        $field->setValue([
+            'tmp_name' => __FILE__,
+            'name' => basename(__FILE__),
+            'type' => '',
+            'size' => 0,
+            'error' => UPLOAD_ERR_OK
+        ]);
+        $this->assertInstanceOf(UploadedFile::class, $field->getValue());
+
+        $field->setValue(null);
+        $this->assertNull($field->getValue());
+
+        $body = 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+        $field->setValue($body);
+        $this->assertInstanceOf(Base64File::class, $field->getValue());
+
+        $body = 'data:;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs=';
+        $field->setValue($body);
+        $this->assertInstanceOf(Base64File::class, $field->getValue());
+    }
+
+    /**
+     * @expectedException \RuntimeException
+     * @expectedExceptionMessage Unknown file type
+     */
+    public function testSetValueUnknownFileType()
+    {
+        $field = new FileField();
+        $field->setValue(new \stdClass());
+    }
+
+    public function testAfterDeleteEvent()
+    {
+        $fs = $this
+            ->getMockBuilder(FilesystemInterface::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $fs->method('has')->willReturn(true);
+        $fs->expects($this->once())->method('delete');
+
+        $field = new FileField();
+        $field->setFilesystem($fs);
+
+        $user = new User;
+        $field->afterDelete($user, __FILE__);
     }
 
     public function testSize()

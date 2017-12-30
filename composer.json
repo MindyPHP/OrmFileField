@@ -30,8 +30,9 @@
     },
     "require": {
         "php": ">=7.0",
-        "symfony/validator": "~3.0|~4.0",
-        "league/flysystem": "~1.0"
+        "league/flysystem": "~1.0",
+        "ralouphie/mimey": "^1.0",
+        "symfony/validator": "~3.0|~4.0"
     },
     "require-dev": {
         "mindy/orm": ">=4.0",
