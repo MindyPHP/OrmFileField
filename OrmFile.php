@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Mindy\Orm;
 
 use League\Flysystem\FilesystemInterface;
+use Mindy\Application\App;
 
 /**
  * Class OrmFile.
@@ -37,6 +38,11 @@ class OrmFile
      */
     public static function getFilesystem(): FilesystemInterface
     {
+        if (self::$filesystem === null) {
+            $container = App::getInstance()->getContainer();
+            self::$filesystem = $container->get($container->getParameter('file.filesystem'));
+        }
+
         return self::$filesystem;
     }
 }
